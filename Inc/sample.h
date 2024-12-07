@@ -1,4 +1,4 @@
 #pragma once
 
 
-void sample_adc();
+void sample_adc(void);

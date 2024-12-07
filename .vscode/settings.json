@@ -1,6 +1,8 @@
 {
     "files.associations": {
-        "sample.h": "c",
-        "main.h": "c"
+      "sample.h": "c",
+      "main.h": "c",
+      "config.h": "c",
+      "rtc.h": "c"
     }
 }

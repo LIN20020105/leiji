@@ -21,10 +21,8 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
-extern uint8_t USART2_aRxBuffer;			//�����жϻ���
+extern uint8_t USART2_aRxBuffer;
 #include "stdio.h"
-
-
 
 /* USER CODE END 0 */
 
@@ -88,7 +86,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* USART1 interrupt Init */
-    HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(USART1_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
   /* USER CODE BEGIN USART1_MspInit 1 */
 
@@ -122,26 +120,13 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 }
 
 /* USER CODE BEGIN 1 */
-/**
-  * ��������: �ض���c�⺯��printf��DEBUG_USARTx
-  * �������?: ��
-  * �� �� ֵ: ��
-  * ˵    ������
-  */
-int fputc(int ch, FILE *f)
-{
+
+int fputc(int ch, FILE *f) {
   HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xffff);
   return ch;
 }
- 
-/**
-  * ��������: �ض���c�⺯��getchar,scanf��DEBUG_USARTx
-  * �������?: ��
-  * �� �� ֵ: ��
-  * ˵    ������
-  */
-int fgetc(FILE *f)
-{
+
+int fgetc(FILE *f) {
   uint8_t ch = 0;
   HAL_UART_Receive(&huart1, &ch, 1, 0xffff);
   return ch;
