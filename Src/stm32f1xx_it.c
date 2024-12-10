@@ -21,9 +21,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f1xx_it.h"
-#include "sample.h"
-#include "config.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -187,7 +184,6 @@ void PendSV_Handler(void)
 /**
   * @brief This function handles System tick timer.
   */
-
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
@@ -196,13 +192,13 @@ void SysTick_Handler(void)
   HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
 	
-	if ((counter % 500) == 0) {
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, (counter % 1000) != 0);
-	}
-	counter++;
-  if (dev_state == DEV_WORK) {
-    sample_adc();
-  }
+//	if ((counter % 500) == 0) {
+//		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, (counter % 1000) != 0);
+//	}
+//	counter++;
+//  if (dev_state == DEV_WORK) {
+//    sample_adc();
+//  }
   
   /* USER CODE END SysTick_IRQn 1 */
 }

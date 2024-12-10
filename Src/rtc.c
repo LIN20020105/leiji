@@ -57,8 +57,8 @@ void MX_RTC_Init(void)
 
   /** Initialize RTC and set the Time and Date
   */
-  sTime.Hours = 0x0;
-  sTime.Minutes = 0x0;
+  sTime.Hours = 0x18;
+  sTime.Minutes = 0x14;
   sTime.Seconds = 0x0;
 
   if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
@@ -66,8 +66,8 @@ void MX_RTC_Init(void)
     Error_Handler();
   }
   DateToUpdate.WeekDay = RTC_WEEKDAY_TUESDAY;
-  DateToUpdate.Month = RTC_MONTH_NOVEMBER;
-  DateToUpdate.Date = 0x19;
+  DateToUpdate.Month = RTC_MONTH_DECEMBER;
+  DateToUpdate.Date = 0x10;
   DateToUpdate.Year = 0x24;
 
   if (HAL_RTC_SetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BCD) != HAL_OK)
@@ -76,7 +76,7 @@ void MX_RTC_Init(void)
   }
   /** Enable the Alarm A
   */
-  sAlarm.AlarmTime.Hours = 0x0;
+  sAlarm.AlarmTime.Hours = 0x18;
   sAlarm.AlarmTime.Minutes = 0x15;
   sAlarm.AlarmTime.Seconds = 0x0;
   sAlarm.Alarm = RTC_ALARM_A;

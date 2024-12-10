@@ -21,11 +21,9 @@
 #include "main.h"
 #include "adc.h"
 #include "dma.h"
-#include "iwdg.h"
 #include "rtc.h"
 #include "usart.h"
 #include "gpio.h"
-#include "config.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -38,9 +36,9 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-char USART2_RxBuffer[RxBuffer_MaxSize];   //��������
-uint8_t USART2_aRxBuffer;			//�����жϻ��壬����һ���ֽ�һ���ֽڽ���
-uint8_t UART2_Rx_Cnt = 0;		//���ջ������?
+char USART1_RxBuffer[RxBuffer_MaxSize];   //��������
+uint8_t USART1_aRxBuffer;			//�����жϻ��壬����һ���ֽ�һ���ֽڽ���
+uint8_t UART1_Rx_Cnt = 0;		//���ջ������??
 
 uint32_t ADC_Buffer[ADC_CHANNELS];//�����������ⲿ�ж�ʱ�ĵ�ѹֵ
 
@@ -64,8 +62,7 @@ uint8_t stop_index = 0;//��������Ƿ�մ�ֹͣ״̬����
 uint8_t Exti_index = 0;//�����жϵ�Ϊ�ⲿ�жϻ���ֹͣ����ʱ�����ó�ʼ��ADC��DMA
 
 
-
-uint8_t dev_state = DEV_INIT;
+//uint8_t dev_state = DEV_INIT;
 
 /* USER CODE END PTD */
 
@@ -119,7 +116,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-  dev_state = DEV_INIT;
+//  dev_state = DEV_INIT;
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -127,29 +124,24 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_USART1_UART_Init();
-  //MX_IWDG_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
-  dev_state = DEV_WORK;
+//  dev_state = DEV_WORK;
   
-  //sys_enter_stop_mode();
-  
-  //sys_out_stop_mode();
-  //HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
-  
-  // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
-  // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
-  
-  //HAL_TIM_Base_Start_IT(&htim2); //������ʱ��������15���ӷ���һ������
-__HAL_RTC_ALARM_ENABLE_IT(&hrtc,RTC_IT_ALRA);
-while(1);
-nbiot_reset();
+//  sys_enter_stop_mode();
+//	sys_out_stop_mode();
 
-NB_IotConnect();
-NB_IoT_connect_MQTT();//���ӵ�MQTT
+//   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+  
+  
+//__HAL_RTC_ALARM_ENABLE_IT(&hrtc,RTC_IT_ALRA);
 
-Get_nowtime(); //��ȡ��ǰʱ�䲢��������RTCʱ�Ӻ�RTC�����ж�ʱ��15min��������
+//nbiot_reset();
 
+//NB_IotConnect();
+//NB_IoT_connect_MQTT();//���ӵ�MQTT
+
+	Get_nowtime(); //��ȡ��ǰʱ�䲢��������RTCʱ�Ӻ�RTC�����ж�ʱ��15min��������
 
 
   /* USER CODE END 2 */
@@ -162,11 +154,11 @@ Get_nowtime(); //��ȡ��ǰʱ�䲢��������RTCʱ�Ӻ�RT
 
     /* USER CODE BEGIN 3 */
 	 // Send_All_data();//����15min���յ���ȫ�����ݣ���ʱ��15min����RTC����15min
-	if(Send_All_data() == 1)//�ж��Ƿ���ִ���귢��ȫ����������
-		{    
-		sys_enter_stop_mode();//������ȫ�����ݺ����ֹͣģʽ���ȴ���һ���ⲿ�жϻ��ѣ�RTC���ѣ�PA0�����ػ��ѣ�ע�ⶨʱ���жϲ��ܻ���ֹͣģʽ
-		sys_out_stop_mode();//���Ѻ����³�ʼ�����裬����nbiot����ʱ�������ӵ�MQTT�Լ�����RTC����Ϊ15min֮��
-		}
+//	if(Send_All_data() == 1)//�ж��Ƿ���ִ���귢��ȫ����������
+//		{    
+//		sys_enter_stop_mode();//������ȫ�����ݺ����ֹͣģʽ���ȴ���һ���ⲿ�жϻ��ѣ�RTC���ѣ�PA0�����ػ��ѣ�ע�ⶨʱ���жϲ��ܻ���ֹͣģʽ
+//		sys_out_stop_mode();//���Ѻ����³�ʼ�����裬����nbiot����ʱ�������ӵ�MQTT�Լ�����RTC����Ϊ15min֮��
+//		}
 	}
   /* USER CODE END 3 */
 }
@@ -225,14 +217,14 @@ void SystemClock_Config(void)
 /* ���ڽ����жϻص����� */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-if (huart->Instance == USART2) 
+if (huart->Instance == USART1) 
 	{
-		USART2_RxBuffer[UART2_Rx_Cnt++] =USART2_aRxBuffer;   //��������ת��
-		if(USART2_RxBuffer[UART2_Rx_Cnt-1] == '\n'&& USART2_RxBuffer[UART2_Rx_Cnt-3] == 'K') //���յ�OKʱ�����ձ�־λ��0
+		USART1_RxBuffer[UART1_Rx_Cnt++] =USART1_aRxBuffer;   //��������ת��
+		if(USART1_RxBuffer[UART1_Rx_Cnt-1] == '\n'&& USART1_RxBuffer[UART1_Rx_Cnt-3] == 'K') //���յ�OKʱ�����ձ�־λ��0
 			{
-			UART2_Rx_Cnt = 0;
+			UART1_Rx_Cnt = 0;
 			}
-		HAL_UART_Receive_IT(&huart1, (uint8_t *)&USART2_aRxBuffer, 1);   //�ٿ��������ж�
+		HAL_UART_Receive_IT(&huart1, (uint8_t *)&USART1_aRxBuffer, 1);   //�ٿ��������ж�
 	}
 //	    HAL_IWDG_Refresh(&hiwdg); // ˢ�¿��Ź���ʱ��
 }
@@ -247,16 +239,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			MX_GPIO_Init();
 			MX_DMA_Init();
 			MX_ADC1_Init();
-			//MX_TIM2_Init();
 			MX_USART1_UART_Init();
-			// MX_USART2_UART_Init();
-			// MX_USART3_UART_Init();
 			//  MX_IWDG_Init();
 			MX_RTC_Init();
 			HAL_ResumeTick();
 			Exti_index = 1;
-
 		}
+		
 	static uint32_t last_interrupt_time = 0;
     uint32_t current_time = HAL_GetTick();
     if ((current_time - last_interrupt_time) > 50) { // 50ms ȥ����ʱ��
@@ -276,7 +265,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	if(pkg.nSize  > 1000){
 	pkg.nSize =1;}
 		uint32_t battery_ad = ADC_Buffer[2]; // ���ad3	
-		pkg.battery = (float)(battery_ad)/4095*100.0;//��ص���?
+		pkg.battery = (float)(battery_ad)/4095*100.0;//��ص���??
 		pkg.head = 0x5a5a5a5a;
 		pkg.sendtime = get_timestamp();
 		pkg.checksum = 0;
@@ -367,7 +356,7 @@ uint8_t Send_All_data(void){
 	return 0;//û�з������ݷ���0
 }
 
-//��ȡʱ�������?
+//��ȡʱ�������??
 uint32_t get_timestamp(){
 	MyRTC_ReadTime();	
 	RTC_TimeStruct rtc_time = {
@@ -378,24 +367,12 @@ uint32_t get_timestamp(){
         .minute = MyRTC_Time[4],
         .second = MyRTC_Time[5]
     };
-	   uint32_t timestamp = calculate_timestamp(&rtc_time);//ʱ���?
+	   uint32_t timestamp = calculate_timestamp(&rtc_time);//ʱ���??
 	return timestamp;
 }
 
 
-/* ��ʱ���жϻص���������ʱ��1s����һ���жϣ�����900�μ�Ϊ15���ӣ�����15�����ڽ��յ���ȫ������ */
-//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-//{
-//if (htim->Instance == TIM2)
-//	{
-//		    interrupt_count++; // �����жϼ�����
-//        if (interrupt_count == 900) { // ����Ƿ�ﵽ900��
-//            data_ready_flag = 1; // �������ݴ�����־λ
-//            interrupt_count = 0; // ���ü�����
-//        }
-//	 }
-////	    HAL_IWDG_Refresh(&hiwdg); // ˢ�¿��Ź���ʱ��
-//}
+
 //RTCʱ���жϻص�����,15���Ӵ���һ�Σ������жϿ��Ի���
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
 {
@@ -410,7 +387,7 @@ void Update_RTC_time(int year, int month, int day, int hour, int minute, int sec
 		RTC_TimeTypeDef sTime;
 		RTC_AlarmTypeDef sAlarm = {0};
 		HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-		minute += 15;
+		minute += 1;
 		if (minute >= 60)
 			{
 			minute -= 60;
@@ -432,7 +409,7 @@ void Update_RTC_time(int year, int month, int day, int hour, int minute, int sec
 			}
 			}			
 		sAlarm.AlarmTime.Hours = ((hour / 10) << 4) | (hour % 10);
-		sAlarm.AlarmTime.Minutes = (((minute) / 10) << 4) | (minute % 10) ;/* �����´���������ʱ���ǵ�ǰʱ���?15min֮�� */
+		sAlarm.AlarmTime.Minutes = (((minute) / 10) << 4) | (minute % 10) ;/* �����´���������ʱ���ǵ�ǰʱ���??15min֮�� */
 		sAlarm.AlarmTime.Seconds = ((second / 10) << 4) | (second % 10);
 		sAlarm.Alarm = RTC_ALARM_A;		
 		HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BCD);
@@ -448,44 +425,52 @@ void sys_enter_stop_mode(void){
 	stop_index = 1;//ֹͣ״̬��־λ
     HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
 }
-//�˳�ֹͣģʽ����еĲ���?
+//�˳�ֹͣģʽ����еĲ���??
 void sys_out_stop_mode(void){
 	stop_index = 0;
-	
-	if(Exti_index != 1){
-		SystemClock_Config();
-		MX_GPIO_Init();
-		MX_DMA_Init();
-		MX_ADC1_Init();
-		//MX_TIM2_Init();
-		MX_USART1_UART_Init();
-		// MX_USART2_UART_Init();
-		// MX_USART3_UART_Init();
-		MX_IWDG_Init();
-		MX_RTC_Init();
-		HAL_ResumeTick();
-	}
-	Exti_index = 0;
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);//���ߵ�ƽ������NBIot
-	//HAL_TIM_Base_Start_IT(&htim2); //������ʱ��
-	__HAL_RTC_ALARM_ENABLE_IT(&hrtc,RTC_IT_ALRA);
-	nbiot_reset();
+	SystemClock_Config();
+//	MX_GPIO_Init();
+//	MX_DMA_Init();
+//	MX_ADC1_Init();
+//	MX_USART1_UART_Init();
+//	MX_RTC_Init();
+	HAL_ResumeTick();
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
+//	if(Exti_index != 1){
+//		SystemClock_Config();
+//		MX_GPIO_Init();
+//		MX_DMA_Init();
+//		MX_ADC1_Init();
+//		//MX_TIM2_Init();
+//		MX_USART1_UART_Init();
+//		// MX_USART2_UART_Init();
+//		// MX_USART3_UART_Init();
+//		MX_RTC_Init();
+//		HAL_ResumeTick();
+//	}
+//	Exti_index = 0;
+//	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);//���ߵ�ƽ������NBIot
+//	//HAL_TIM_Base_Start_IT(&htim2); //������ʱ��
+//	__HAL_RTC_ALARM_ENABLE_IT(&hrtc,RTC_IT_ALRA);
+//	nbiot_reset();
 
-	NB_IotConnect();
-	NB_IoT_connect_MQTT();//���ӵ�MQTT
+//	NB_IotConnect();
+//	NB_IoT_connect_MQTT();//���ӵ�MQTT
 
-	Get_nowtime(); //��ȡ��ǰʱ�䲢��������RTCʱ�Ӻ�RTC�����ж�ʱ��
+//	Get_nowtime(); //��ȡ��ǰʱ�䲢��������RTCʱ�Ӻ�RTC�����ж�ʱ��
 }
 //��ȡ��ǰ����ʱ�亯�����ҵ��ø���RTCʱ�Ӻ���
 void Get_nowtime(void)
 {
+	send_NB_IoT("+++\r\n");
 	send_NB_IoT("AT+TIME\r\n");
-		while(NB_IoT_ack_check("OK")!=1 || USART2_RxBuffer[3] != 'T')
+		while(NB_IoT_ack_check("OK")!=1 || USART1_RxBuffer[3] != 'T')
 		{
 			Clear_Buffer();
+			send_NB_IoT("+++\r\n");
 			send_NB_IoT("AT+TIME\r\n");
 		}
-		memcpy(Time_RxBuffer,&USART2_RxBuffer[10],17);//��USART2_RxBuffer�е�ʱ�����Time_RxBuffer
+		memcpy(Time_RxBuffer,&USART1_RxBuffer[10],17);//��USART2_RxBuffer�е�ʱ�����Time_RxBuffer
 		if (sscanf(Time_RxBuffer, "%2d/%2d/%2d,%2d:%2d:%2d", 
                &year, &month, &day, &hour, &minute, &second) == 6) {
 			UpdateRTC(year, month, day, hour, minute, second);   
@@ -522,7 +507,7 @@ static int days_in_month(int year, int month) {
     }
     return days_per_month[month - 1];
 }
-// �����?2024��1��1��00:00:00��ָ�����ڵ�������,��ʱ���?
+// �����??2024��1��1��00:00:00��ָ�����ڵ�������,��ʱ���??
 uint32_t calculate_timestamp(RTC_TimeStruct *rtc_time) {
 	
     int year = rtc_time->year;
@@ -534,12 +519,12 @@ uint32_t calculate_timestamp(RTC_TimeStruct *rtc_time) {
 
     int total_days = 0;
 
-    // �����?2024��1��1�յ�ָ����ݵ�������?
+    // �����??2024��1��1�յ�ָ����ݵ�������??
     for (int y = 2024; y < year; y++) {
         total_days += is_leap_year(y) ? 366 : 365;
     }
 
-    // �����?2024��1��1�յ�ָ���·ݵ�������
+    // �����??2024��1��1�յ�ָ���·ݵ�������
     for (int m = 1; m < month; m++) {
         total_days += days_in_month(year, m);
     }

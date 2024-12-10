@@ -27,14 +27,12 @@ gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_adc.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_adc_ex.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash_ex.h
-gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_iwdg.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc_ex.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
 gpsnbiot2\sample.o: ../Inc/adc.h
 gpsnbiot2\sample.o: ../Inc/dma.h
-gpsnbiot2\sample.o: ../Inc/iwdg.h
 gpsnbiot2\sample.o: ../Inc/rtc.h
 gpsnbiot2\sample.o: ../Inc/usart.h
 gpsnbiot2\sample.o: D:\keil5\ARM\ARMCC\Bin\..\include\stdio.h

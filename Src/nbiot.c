@@ -4,14 +4,14 @@
 #include "stdio.h"
 #include <stdlib.h>
 
-extern char USART2_RxBuffer[RxBuffer_MaxSize];   
+extern char USART1_RxBuffer[RxBuffer_MaxSize];   
 
 char *strx;
 
 
 /* ģ�鷢������ */
 void send_NB_IoT(const char* cmd) {
-    //HAL_UART_Transmit(&huart1, (uint8_t*)cmd, strlen(cmd), HAL_MAX_DELAY);
+    HAL_UART_Transmit(&huart1, (uint8_t*)cmd, strlen(cmd), HAL_MAX_DELAY);
 }
 /* ģ������ */
 void nbiot_reset(void) {
@@ -22,7 +22,7 @@ void nbiot_reset(void) {
 
 uint8_t NB_IoT_ack_check(const char* str) {
     HAL_Delay(100);
-        if (strstr((const char*)USART2_RxBuffer, str)) 
+        if (strstr((const char*)USART1_RxBuffer, str)) 
 			{
             return 1;
 			} 
@@ -34,7 +34,7 @@ uint8_t NB_IoT_ack_check(const char* str) {
 /* ������ջ����� */
 void Clear_Buffer(void)
 {
-memset(USART2_RxBuffer, 0, 256);
+memset(USART1_RxBuffer, 0, 256);
 
 }
 /* ģ���ʼ�� */
@@ -42,26 +42,26 @@ void NB_IotConnect(void)
 {
 	send_NB_IoT("+++\r\n");//��������ģʽ
 	HAL_Delay(300); 
-	strx=strstr((const char*)USART2_RxBuffer,(const char*)"OK");
+	strx=strstr((const char*)USART1_RxBuffer,(const char*)"OK");
 	Clear_Buffer();
 	while(strx==NULL)
     {
 		Clear_Buffer();
 		send_NB_IoT("+++\r\n");
         HAL_Delay(300);
-        strx=strstr((const char*)USART2_RxBuffer,(const char*)"OK");
+        strx=strstr((const char*)USART1_RxBuffer,(const char*)"OK");
     }
 	
 	send_NB_IoT("AT\r\n");//�ж��Ƿ�������ģʽ
 		HAL_Delay(300); 
-		strx=strstr((const char*)USART2_RxBuffer,(const char*)"OK");
+		strx=strstr((const char*)USART1_RxBuffer,(const char*)"OK");
 		Clear_Buffer();
 	while(strx==NULL)
     {
 		Clear_Buffer();
 		send_NB_IoT("AT\r\n");
         HAL_Delay(300);
-        strx=strstr((const char*)USART2_RxBuffer,(const char*)"OK");
+        strx=strstr((const char*)USART1_RxBuffer,(const char*)"OK");
     }
 	send_NB_IoT("AT+DTUMODE=2,1\r\n");//���ù���ģʽΪMQTT͸����ͨ��1
 		HAL_Delay(300);
