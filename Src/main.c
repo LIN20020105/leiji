@@ -20,7 +20,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
-#include "dma.h"
 #include "gpio.h"
 #include "rtc.h"
 #include "usart.h"
@@ -29,6 +28,8 @@
 /* USER CODE BEGIN Includes */
 #include "config.h"
 #include "nbiot.h"
+#include "pack.h"
+#include "sample.h"
 #include "stdio.h"
 #include "string.h"
 #include <stdlib.h>
@@ -37,30 +38,10 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-char USART2_RxBuffer[RxBuffer_MaxSize];
-uint8_t USART2_aRxBuffer;
-uint8_t UART2_Rx_Cnt = 0;
 
+// uint8_t USART2_aRxBuffer;
+// uint8_t UART2_Rx_Cnt = 0;
 uint32_t ADC_Buffer[ADC_CHANNELS];
-
-uint8_t readingIndex = 0;
-
-uint16_t MyRTC_Time[] = {24, 11, 19, 12, 20, 00};
-char Time_RxBuffer[RxBuffer_MaxSize];
-int day, month, year, hour, minute, second;
-
-volatile uint32_t interrupt_count = 0;
-volatile uint8_t data_ready_flag = 0;
-volatile uint32_t RTC_interrupt_count = 0;
-volatile uint8_t RTC_data_ready_flag = 0;
-
-Package pkg;
-
-uint16_t thunder_index = 0;
-uint8_t stop_index = 0;
-uint8_t Exti_index = 0;
-
-uint8_t dev_state = DEV_INIT;
 
 /* USER CODE END PTD */
 
@@ -78,6 +59,14 @@ uint8_t dev_state = DEV_INIT;
 
 /* USER CODE BEGIN PV */
 
+uint8_t dev_state = DEV_INIT;
+uint8_t RTC_Alarm_flag = 0;
+uint32_t rdy_send_time = 0;
+uint8_t sample_flag = 0;
+uint8_t enter_stop = 0;
+uint32_t uuid = 0x0;
+extern uint16_t battery;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -88,7 +77,8 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-RTC_TimeTypeDef as;
+uint32_t rtc_ts = 0;
+
 /* USER CODE END 0 */
 
 /**
@@ -107,7 +97,7 @@ int main(void) {
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  uuid = HAL_GetDEVID();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -119,50 +109,80 @@ int main(void) {
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_ADC1_Init();
   MX_USART1_UART_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
   dev_state = DEV_WORK;
-
   RTC_Set_Alarm();
+  init_package();
+
+  // Note: Init NB-iot If necessary:
+  // nbiot_reset();
+  // NB_IotConnect();
+  // NB_IoT_connect_MQTT();
 
   // sys_enter_stop_mode();
-
   // sys_out_stop_mode();
   // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
 
-  // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
-  // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
-
-  // HAL_TIM_Base_Start_IT(&htim2);
-  // __HAL_RTC_ALARM_ENABLE_IT(&hrtc, RTC_IT_ALRA);
-
   while (1) {
-    HAL_RTC_GetTime(&hrtc, &as, RTC_FORMAT_BIN);
+    // RTC clk will use LSE (now LSI 40Khz is not accurate)
+    rtc_ts = RTC_Get_Timestamp();
+    static int RTC_LED = 1;
+
+    if (RTC_Alarm_flag == 1) {
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, RTC_LED);
+      RTC_LED = !RTC_LED;
+
+      // Send data if connected to server
+      if (IO_NB_NETMODE && IO_NB_LINK) {
+        sample_adc(0);
+        send_package(battery, RTC_Get_Timestamp());
+        RTC_Set_Alarm();
+        RTC_Alarm_flag = 0;
+
+      } else {
+        // 1. Reset NBIOT_DTU If timeout (60s)
+        if (uwTick - rdy_send_time >= 1000 * 60) {
+          // rst action (by AT, or ?)
+
+        }
+        // 2. Reset Fail, cancel sending task and enter low-power mode
+        else if (uwTick - rdy_send_time >= 1000 * 120) {
+          RTC_Set_Alarm();
+          RTC_Alarm_flag = 0;
+        }
+      }
+    }
+    if (sample_flag == 1) {
+      sample_adc(1);
+      sample_flag = 0;
+    }
+
+    // Here feed watchdog (enbale it when everything is finished)
+    // Feed();
+
+    // No more task:
+    if (!sample_flag && !RTC_Alarm_flag) {
+      // 1. MCU and NB-iot Enter low-power mode
+
+      // sys_enter_stop_mode();
+
+      // 2. Recovery MCU and NB-iot state
+      // sys_out_stop_mode();
+    }
   }
-
-  nbiot_reset();
-
-  NB_IotConnect();
-  NB_IoT_connect_MQTT(); 
-
-  Get_nowtime();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1) {
-    /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-    if (Send_All_data() == 1) {
-      sys_enter_stop_mode();
-      sys_out_stop_mode();
-    }
-  }
+  /* USER CODE END WHILE */
+
+  /* USER CODE BEGIN 3 */
+
   /* USER CODE END 3 */
 }
 
@@ -212,280 +232,48 @@ void SystemClock_Config(void) {
 
 /* USER CODE BEGIN 4 */
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-  if (huart->Instance == USART2) {
-    USART2_RxBuffer[UART2_Rx_Cnt++] = USART2_aRxBuffer;
-    if (USART2_RxBuffer[UART2_Rx_Cnt - 1] == '\n' &&
-        USART2_RxBuffer[UART2_Rx_Cnt - 3] == 'K') {
-      UART2_Rx_Cnt = 0;
-    }
-    HAL_UART_Receive_IT(&huart1, (uint8_t *)&USART2_aRxBuffer, 1);
-  }
-  //	    HAL_IWDG_Refresh(&hiwdg);
-}
+// HAL lib USART handler not efficient, but it works
+// So We use IRQ_handler called by assemble to receive data
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-  if (stop_index == 1) {
-    HAL_Init();
-    SystemClock_Config();
-    MX_GPIO_Init();
-    MX_DMA_Init();
-    MX_ADC1_Init();
-    // MX_TIM2_Init();
-    MX_USART1_UART_Init();
-    // MX_USART2_UART_Init();
-    // MX_USART3_UART_Init();
-    //  MX_IWDG_Init();
-    MX_RTC_Init();
-    HAL_ResumeTick();
-    Exti_index = 1;
-  }
-  static uint32_t last_interrupt_time = 0;
-  uint32_t current_time = HAL_GetTick();
-  if ((current_time - last_interrupt_time) > 50) {
-    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_Pin);
-    HAL_ADC_Start_DMA(&hadc1, (uint32_t *)ADC_Buffer, ADC_CHANNELS);
-    while (__HAL_DMA_GET_FLAG(&hdma_adc1, DMA_FLAG_TC1) == RESET) {
-    }
-    __HAL_DMA_CLEAR_FLAG(&hdma_adc1, DMA_FLAG_TC1);
+// void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+//   if (huart->Instance == USART1) {
+//     USART1_RxBuffer[UART2_Rx_Cnt++] = USART2_aRxBuffer;
+//     if (USART1_RxBuffer[UART2_Rx_Cnt - 1] == '\n' &&
+//         USART1_RxBuffer[UART2_Rx_Cnt - 3] == 'K') {
+//       UART2_Rx_Cnt = 0;
+//     }
+//     HAL_UART_Receive_IT(&huart1, (uint8_t *)&USART2_aRxBuffer, 1);
+//   }
+// }
 
-    pkg.nSize++;
-    pkg.payload[pkg.nSize - 1].thunder1 = ADC_Buffer[0];
-    pkg.payload[pkg.nSize - 1].thunder2 = ADC_Buffer[1];
-    pkg.payload[pkg.nSize - 1].timestamp = get_timestamp();
-
-    if (pkg.nSize > 1000) {
-      pkg.nSize = 1;
-    }
-    uint32_t battery_ad = ADC_Buffer[2];
-    pkg.battery = (float)(battery_ad) / 4095 * 100.0;
-    pkg.head = 0x5a5a5a5a;
-    pkg.sendtime = get_timestamp();
-    pkg.checksum = 0;
-    pkg.checksum = pkg.head + pkg.sendtime + pkg.battery + pkg.nSize;
-    for (uint16_t i = 0; i < pkg.nSize; i++) {
-      pkg.checksum += pkg.payload[i].thunder1 + pkg.payload[i].thunder2 +
-                      pkg.payload[i].timestamp;
-    }
-    send_data(&pkg);
-  }
-  //    HAL_IWDG_Refresh(&hiwdg);
-}
-
-void send_data(const Package *pkg) {
-  uint8_t buffer[256];
-  size_t size;
-
-  serialize_package(pkg, buffer, &size);
-  send_NB_IoT("ATO\r\n");
-  HAL_UART_Transmit(&huart1, buffer, size, HAL_MAX_DELAY);
-}
-
-size_t calculate_package_size(const Package *pkg) {
-  return sizeof(pkg->head) + sizeof(pkg->sendtime) + sizeof(pkg->battery) +
-         sizeof(pkg->nSize) + sizeof(pkg->checksum) + sizeof(ThunderDate);
-}
-
-void serialize_package(const Package *pkg, uint8_t *hex_buffer, size_t *size) {
-  memcpy(hex_buffer, &pkg->head, sizeof(pkg->head));
-  memcpy(hex_buffer + sizeof(pkg->head), &pkg->sendtime, sizeof(pkg->sendtime));
-  memcpy(hex_buffer + sizeof(pkg->head) + sizeof(pkg->sendtime), &pkg->battery,
-         sizeof(pkg->battery));
-  memcpy(hex_buffer + sizeof(pkg->head) + sizeof(pkg->sendtime) +
-             sizeof(pkg->battery),
-         &pkg->nSize, sizeof(pkg->nSize));
-  memcpy(hex_buffer + sizeof(pkg->head) + sizeof(pkg->sendtime) +
-             sizeof(pkg->battery) + sizeof(pkg->nSize),
-         &pkg->checksum, sizeof(pkg->checksum));
-  size_t offset = sizeof(pkg->head) + sizeof(pkg->sendtime) +
-                  sizeof(pkg->battery) + sizeof(pkg->nSize) +
-                  sizeof(pkg->checksum);
-  memcpy(hex_buffer + offset, &pkg->payload[pkg->nSize - 1].thunder1,
-         sizeof(uint32_t));
-  offset += sizeof(uint32_t);
-  memcpy(hex_buffer + offset, &pkg->payload[pkg->nSize - 1].thunder2,
-         sizeof(uint32_t));
-  offset += sizeof(uint32_t);
-  memcpy(hex_buffer + offset, &pkg->payload[pkg->nSize - 1].timestamp,
-         sizeof(uint32_t));
-  *size = calculate_package_size(pkg);
-}
-
-void serialize_all_package(const Package *pkg, uint8_t *hex_buffer,
-                           size_t *allsize) {
-  size_t offset = 0;
-  memcpy(hex_buffer + offset, &pkg->head, sizeof(pkg->head));
-  offset += sizeof(pkg->head);
-  memcpy(hex_buffer + offset, &pkg->sendtime, sizeof(pkg->sendtime));
-  offset += sizeof(pkg->sendtime);
-  //    memcpy(hex_buffer + offset, &pkg->nSize, sizeof(pkg->nSize));
-  //    offset += sizeof(pkg->nSize);
-  memcpy(hex_buffer + offset, &pkg->checksum, sizeof(pkg->checksum));
-  offset += sizeof(pkg->checksum);
-  for (uint16_t i = 1; i <= pkg->nSize; i++) {
-    memcpy(hex_buffer + offset, &i, sizeof(i));
-    offset += sizeof(i);
-    memcpy(hex_buffer + offset, &pkg->payload[i - 1].thunder1,
-           sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    memcpy(hex_buffer + offset, &pkg->payload[i - 1].thunder2,
-           sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    memcpy(hex_buffer + offset, &pkg->payload[i - 1].timestamp,
-           sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-  }
-  *allsize = offset;
-}
-uint8_t Send_All_data(void) {
-  uint8_t buffer[256];
-  size_t allsize;
-  if (data_ready_flag == 1 || RTC_data_ready_flag == 1) {
-    pkg.head = 0x5a5a5a5a;
-    pkg.sendtime = get_timestamp();
-    //        pkg.nSize = pkg.nSize;
-    pkg.checksum = 0;
-    pkg.checksum = pkg.head + pkg.sendtime + pkg.nSize;
-    for (uint16_t i = 0; i < pkg.nSize; i++) {
-      pkg.checksum += pkg.payload[i].thunder1 + pkg.payload[i].thunder2 +
-                      pkg.payload[i].timestamp;
-    }
-    // auto a = (uint8_t*) (&pkg)
-    serialize_all_package(&pkg, buffer, &allsize);
-    send_NB_IoT("ATO\r\n");
-    HAL_UART_Transmit(&huart1, buffer, allsize, HAL_MAX_DELAY);
-    data_ready_flag = 0;
-    RTC_data_ready_flag = 0;
-    Get_nowtime();
-    return 1;
-  }
-  return 0;
-}
-
-uint32_t get_timestamp() {
-  MyRTC_ReadTime();
-  RTC_TimeStruct rtc_time = {.year = MyRTC_Time[0],
-                             .month = MyRTC_Time[1],
-                             .day = MyRTC_Time[2],
-                             .hour = MyRTC_Time[3],
-                             .minute = MyRTC_Time[4],
-                             .second = MyRTC_Time[5]};
-  uint32_t timestamp = calculate_timestamp(&rtc_time);
-  return timestamp;
-}
-
-// void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-//{
-// if (htim->Instance == TIM2)
-//	{
-//		    interrupt_count++;
-//         if (interrupt_count == 900) {
-//             data_ready_flag = 1;
-//             interrupt_count = 0;
-//         }
-//	 }
-////	    HAL_IWDG_Refresh(&hiwdg);
-//}
-void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
-  RTC_data_ready_flag = 1;
-
-  //	    HAL_IWDG_Refresh(&hiwdg);
-}
-
-void Update_RTC_time(int year, int month, int day, int hour, int minute,
-                     int second) {
-  RTC_TimeTypeDef sTime;
-  RTC_AlarmTypeDef sAlarm = {0};
-  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-  minute += 15;
-  if (minute >= 60) {
-    minute -= 60;
-    hour += 1;
-    if (hour >= 24) {
-      hour -= 24;
-      day += 1;
-      if (day > days_in_month(year, month)) {
-        day = 1;
-        month += 1;
-        if (month > 12) {
-          month = 1;
-          year += 1;
-        }
-      }
-    }
-  }
-  sAlarm.AlarmTime.Hours = ((hour / 10) << 4) | (hour % 10);
-  sAlarm.AlarmTime.Minutes = (((minute) / 10) << 4) | (minute % 10);
-  sAlarm.AlarmTime.Seconds = ((second / 10) << 4) | (second % 10);
-  sAlarm.Alarm = RTC_ALARM_A;
-  HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BCD);
-}
 void sys_enter_stop_mode(void) {
   __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_RCC_BKP_CLK_ENABLE();
+
   HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);
   __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+
+  enter_stop = 1;
+
   HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
   HAL_SuspendTick();
-  // stop_index = 1;
   HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
 }
 void sys_out_stop_mode(void) {
-  stop_index = 0;
-
-  if (Exti_index != 1) {
-    SystemClock_Config();
-    MX_GPIO_Init();
-    MX_DMA_Init();
-    MX_ADC1_Init();
-    // MX_TIM2_Init();
-    MX_USART1_UART_Init();
-    // MX_IWDG_Init();
-    MX_RTC_Init();
-    HAL_ResumeTick();
-  }
-  Exti_index = 0;
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
-  // HAL_TIM_Base_Start_IT(&htim2);
-  // __HAL_RTC_ALARM_ENABLE_IT(&hrtc, RTC_IT_ALRA);
-  nbiot_reset();
-
-  NB_IotConnect();
-  NB_IoT_connect_MQTT();
-
-  Get_nowtime();
-}
-void Get_nowtime(void) {
-  send_NB_IoT("AT+TIME\r\n");
-  while (NB_IoT_ack_check("OK") != 1 || USART2_RxBuffer[3] != 'T') {
-    Clear_Buffer();
-    send_NB_IoT("AT+TIME\r\n");
-  }
-  memcpy(Time_RxBuffer, &USART2_RxBuffer[10], 17);
-  if (sscanf(Time_RxBuffer, "%2d/%2d/%2d,%2d:%2d:%2d", &year, &month, &day,
-             &hour, &minute, &second) == 6) {
-    UpdateRTC(year, month, day, hour, minute, second);
-    Update_RTC_time(year, month, day, hour, minute, second);
-  }
-  //	    HAL_IWDG_Refresh(&hiwdg);
+  SystemClock_Config();
+  MX_GPIO_Init();
+  // MX_DMA_Init();
+  MX_ADC1_Init();
+  MX_USART1_UART_Init();
+  // MX_RTC_Init();
+  HAL_ResumeTick();
 }
 
-void MyRTC_ReadTime(void) {
-  RTC_TimeTypeDef sTime;
-  RTC_DateTypeDef sDate;
-  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-  MyRTC_Time[0] = sDate.Year;
-  MyRTC_Time[1] = sDate.Month;
-  MyRTC_Time[2] = sDate.Date;
-  MyRTC_Time[3] = sTime.Hours;
-  MyRTC_Time[4] = sTime.Minutes;
-  MyRTC_Time[5] = sTime.Seconds;
-}
-
+// unuse
 static int is_leap_year(int year) {
   return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
 }
-
+// unuse
 static int days_in_month(int year, int month) {
   const int days_per_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
   if (month == 2 && is_leap_year(year)) {
@@ -493,6 +281,7 @@ static int days_in_month(int year, int month) {
   }
   return days_per_month[month - 1];
 }
+// unuse
 uint32_t calculate_timestamp(RTC_TimeStruct *rtc_time) {
 
   int year = rtc_time->year;
@@ -518,33 +307,6 @@ uint32_t calculate_timestamp(RTC_TimeStruct *rtc_time) {
       total_days * 24 * 60 * 60 + hour * 60 * 60 + minute * 60 + second;
 
   return total_seconds;
-}
-
-void UpdateRTC(int year, int month, int day, int hour, int minute, int second) {
-  RTC_TimeTypeDef sTime = {0};
-  RTC_DateTypeDef DateToUpdate = {0};
-
-  hrtc.Instance = RTC;
-  hrtc.Init.AsynchPrediv = RTC_AUTO_1_SECOND;
-  hrtc.Init.OutPut = RTC_OUTPUTSOURCE_ALARM;
-  if (HAL_RTC_Init(&hrtc) != HAL_OK) {
-    Error_Handler();
-  }
-  sTime.Hours = ((hour / 10) << 4) | (hour % 10);
-  sTime.Minutes = ((minute / 10) << 4) | (minute % 10);
-  sTime.Seconds = ((second / 10) << 4) | (second % 10);
-  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK) {
-    Error_Handler();
-  }
-  DateToUpdate.WeekDay = RTC_WEEKDAY_TUESDAY;
-  DateToUpdate.Month = RTC_MONTH_NOVEMBER;
-  DateToUpdate.Date = ((day / 10) << 4) | (day % 10);
-  DateToUpdate.Year = ((year / 10) << 4) | (year % 10);
-
-  if (HAL_RTC_SetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BCD) != HAL_OK) {
-    Error_Handler();
-  }
-  //   HAL_IWDG_Refresh(&hiwdg);
 }
 
 /* USER CODE END 4 */

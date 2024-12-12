@@ -32,4 +32,7 @@ gpsnbiot2\stm32f1xx_it.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc.
 gpsnbiot2\stm32f1xx_it.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc_ex.h
 gpsnbiot2\stm32f1xx_it.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
 gpsnbiot2\stm32f1xx_it.o: ../Inc/config.h
+gpsnbiot2\stm32f1xx_it.o: ../Inc/gpio.h
 gpsnbiot2\stm32f1xx_it.o: ../Inc/rtc.h
+gpsnbiot2\stm32f1xx_it.o: ../Inc/usart.h
+gpsnbiot2\stm32f1xx_it.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h

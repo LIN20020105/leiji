@@ -31,12 +31,13 @@ gpsnbiot2\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc.h
 gpsnbiot2\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc_ex.h
 gpsnbiot2\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
 gpsnbiot2\main.o: ../Inc/adc.h
-gpsnbiot2\main.o: ../Inc/dma.h
 gpsnbiot2\main.o: ../Inc/gpio.h
 gpsnbiot2\main.o: ../Inc/rtc.h
 gpsnbiot2\main.o: ../Inc/usart.h
 gpsnbiot2\main.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 gpsnbiot2\main.o: ../Inc/config.h
 gpsnbiot2\main.o: ../Inc/nbiot.h
+gpsnbiot2\main.o: ../Inc/pack.h
+gpsnbiot2\main.o: ../Inc/sample.h
 gpsnbiot2\main.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 gpsnbiot2\main.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h

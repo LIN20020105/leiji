@@ -26,6 +26,7 @@
 /* USER CODE BEGIN Includes */
 #include "config.h"
 #include "rtc.h"
+#include "usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,12 +60,14 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern DMA_HandleTypeDef hdma_adc1;
-extern ADC_HandleTypeDef hadc1;
 extern RTC_HandleTypeDef hrtc;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 extern uint8_t dev_state;
+extern uint8_t RTC_Alarm_flag;
+extern uint8_t sample_flag;
+extern uint8_t enter_stop;
+extern uint32_t rdy_send_time;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -185,8 +188,9 @@ void SysTick_Handler(void) {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, (counter % 1000) != 0);
   }
   counter++;
+
   if (dev_state == DEV_WORK) {
-    sample_adc();
+    sample_flag = 1;
   }
 
   /* USER CODE END SysTick_IRQn 1 */
@@ -200,21 +204,6 @@ void SysTick_Handler(void) {
 /******************************************************************************/
 
 /**
- * @brief This function handles RTC global interrupt.
- */
-void RTC_IRQHandler(void) {
-  /* USER CODE BEGIN RTC_IRQn 0 */
-  static int RTC_LED = 0;
-  /* USER CODE END RTC_IRQn 0 */
-  HAL_RTCEx_RTCIRQHandler(&hrtc);
-  /* USER CODE BEGIN RTC_IRQn 1 */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, RTC_LED);
-  RTC_LED = !RTC_LED;
-	RTC_Set_Alarm();
-  /* USER CODE END RTC_IRQn 1 */
-}
-
-/**
  * @brief This function handles EXTI line0 interrupt.
  */
 void EXTI0_IRQHandler(void) {
@@ -223,34 +212,13 @@ void EXTI0_IRQHandler(void) {
   /* USER CODE END EXTI0_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
   /* USER CODE BEGIN EXTI0_IRQn 1 */
-	
+  //  if (enter_stop == 1) {
+  //    SystemClock_Config();
+  //		HAL_ResumeTick();
+  //    enter_stop = 0;
+  //  }
+
   /* USER CODE END EXTI0_IRQn 1 */
-}
-
-/**
- * @brief This function handles DMA1 channel1 global interrupt.
- */
-void DMA1_Channel1_IRQHandler(void) {
-  /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
-
-  /* USER CODE END DMA1_Channel1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc1);
-  /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
-
-  /* USER CODE END DMA1_Channel1_IRQn 1 */
-}
-
-/**
- * @brief This function handles ADC1 and ADC2 global interrupts.
- */
-void ADC1_2_IRQHandler(void) {
-  /* USER CODE BEGIN ADC1_2_IRQn 0 */
-
-  /* USER CODE END ADC1_2_IRQn 0 */
-  HAL_ADC_IRQHandler(&hadc1);
-  /* USER CODE BEGIN ADC1_2_IRQn 1 */
-
-  /* USER CODE END ADC1_2_IRQn 1 */
 }
 
 /**
@@ -263,7 +231,37 @@ void USART1_IRQHandler(void) {
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
 
+  // Even we can comment HAL_UART_IRQHandler(&huart1) to improve performance
+
+  if ((USART1->SR & USART_SR_RXNE) == USART_SR_RXNE) {
+
+    uint8_t receivedByte = (uint8_t)(USART1->DR & 0xFF);
+    // If Queue is not full
+    int nr = (U1Rx_rear + 1) % RxBuffer_MaxSize;
+    if (nr != U1Rx_front) {
+      USART1_RxBuffer[nr] = receivedByte;
+      U1Rx_rear = nr;
+    } else {
+      USART1_RxBuffer[nr] = receivedByte;
+      U1Rx_rear = nr;
+      U1Rx_front = (U1Rx_front + 1) % RxBuffer_MaxSize;
+    }
+  }
   /* USER CODE END USART1_IRQn 1 */
+}
+
+/**
+ * @brief This function handles RTC alarm interrupt through EXTI line 17.
+ */
+void RTC_Alarm_IRQHandler(void) {
+  /* USER CODE BEGIN RTC_Alarm_IRQn 0 */
+
+  /* USER CODE END RTC_Alarm_IRQn 0 */
+  HAL_RTC_AlarmIRQHandler(&hrtc);
+  /* USER CODE BEGIN RTC_Alarm_IRQn 1 */
+  RTC_Alarm_flag = 1;
+  rdy_send_time = uwTick;
+  /* USER CODE END RTC_Alarm_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

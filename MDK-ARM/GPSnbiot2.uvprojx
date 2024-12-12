@@ -420,11 +420,6 @@
               <FilePath>../Src/adc.c</FilePath>
             </File>
             <File>
-              <FileName>dma.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Src/dma.c</FilePath>
-            </File>
-            <File>
               <FileName>rtc.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Src\rtc.c</FilePath>
@@ -443,6 +438,11 @@
               <FileName>stm32f1xx_hal_msp.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Src/stm32f1xx_hal_msp.c</FilePath>
+            </File>
+            <File>
+              <FileName>pack.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\pack.c</FilePath>
             </File>
           </Files>
         </Group>

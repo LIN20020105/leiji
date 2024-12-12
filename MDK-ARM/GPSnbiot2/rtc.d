@@ -32,3 +32,4 @@ gpsnbiot2\rtc.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc.h
 gpsnbiot2\rtc.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc_ex.h
 gpsnbiot2\rtc.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
 gpsnbiot2\rtc.o: ../Inc/config.h
+gpsnbiot2\rtc.o: ../Inc/gpio.h

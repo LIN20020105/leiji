@@ -1,4 +1,3 @@
 #pragma once
 
-
-void sample_adc(void);
+void sample_adc(int push_to_pkg);

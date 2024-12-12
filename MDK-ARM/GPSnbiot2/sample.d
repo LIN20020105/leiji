@@ -1,5 +1,6 @@
 gpsnbiot2\sample.o: ..\Src\sample.c
 gpsnbiot2\sample.o: ../Inc/sample.h
+gpsnbiot2\sample.o: ../Inc/adc.h
 gpsnbiot2\sample.o: ../Inc/main.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h
 gpsnbiot2\sample.o: ../Inc/stm32f1xx_hal_conf.h
@@ -31,9 +32,8 @@ gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc_ex.h
 gpsnbiot2\sample.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
-gpsnbiot2\sample.o: ../Inc/adc.h
-gpsnbiot2\sample.o: ../Inc/dma.h
+gpsnbiot2\sample.o: ../Inc/gpio.h
+gpsnbiot2\sample.o: ../Inc/pack.h
 gpsnbiot2\sample.o: ../Inc/rtc.h
 gpsnbiot2\sample.o: ../Inc/usart.h
 gpsnbiot2\sample.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
-gpsnbiot2\sample.o: ../Inc/gpio.h

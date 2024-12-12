@@ -2,9 +2,29 @@
 #include "sample.h"
 
 #include "adc.h"
-#include "dma.h"
 #include "gpio.h"
-#include "iwdg.h"
 #include "main.h"
 #include "rtc.h"
 #include "usart.h"
+
+typedef struct ThunderData {
+  uint16_t thunder1;
+  uint16_t thunder2;
+  uint32_t timestamp;
+} ThunderData;
+
+typedef struct UPackage {
+  uint32_t head;
+  uint32_t uuid;
+  uint32_t bytes;
+  uint32_t timestamp;
+  uint16_t battery;
+  uint16_t nSize;
+  uint32_t checksum;
+} UPackage;
+
+#define PAYLOAD_MAX_SIZE 512
+
+void init_package(void);
+void push_data(uint16_t thunder1, uint16_t thunder2, uint32_t ts);
+void send_package(uint16_t battery, uint32_t timestamp);
