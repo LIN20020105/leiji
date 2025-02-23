@@ -71,7 +71,7 @@ extern UPackage package;
 const char *cmd1 = "+++";
 const char *cmd2 = "AT+CFUN=1,1\r\n";
 const char *cmd3 = "ATO\r\n";
-uint32_t CpuID[3];							//Ð¡¶ËÄ£Ê½
+uint32_t CpuID[3];							//è‹¤å‚·è€€å®’
 uint32_t hashed_value = 0;
 uint32_t timeout_counter = 0;
 
@@ -139,8 +139,6 @@ int main(void)
 
       // Send data if connected to server
 //      if (IO_NB_NETMODE && IO_NB_LINK) {
-		while (!IO_NB_LINK) {
-		}
 		 if (IO_NB_LINK) {
         sample_adc(0);
         send_package(battery, RTC_Get_Timestamp());
@@ -284,9 +282,9 @@ void sys_out_stop_mode(void) {
 }
 void GetChipID ( void )
 {
-    CpuID[0] = * ( uint32_t * ) ( 0x1ffff7e8 ); //¸ß32Î»µØÖ·
-    CpuID[1] = * ( uint32_t * ) ( 0x1ffff7ec ); //ÖÐ32Î»µØÖ·
-    CpuID[2] = * ( uint32_t * ) ( 0x1ffff7f0 ); //µÍ32Î»µØÖ·
+    CpuID[0] = * ( uint32_t * ) ( 0x1ffff7e8 ); //è©¢32å¼‡è¯ç¡Š
+    CpuID[1] = * ( uint32_t * ) ( 0x1ffff7ec ); //ç¬¢32å¼‡è¯ç¡Š
+    CpuID[2] = * ( uint32_t * ) ( 0x1ffff7f0 ); //è…´32å¼‡è¯ç¡Š
 }
 uint32_t murmur3_32_simple(uint32_t k) {
     k ^= k >> 16;
@@ -303,7 +301,7 @@ uint32_t hash_cpu_id(uint32_t cpu_id0, uint32_t cpu_id1, uint32_t cpu_id2) {
     uint32_t hash = murmur3_32_simple(combined_id & 0xFFFFFFFF);
     hash ^= murmur3_32_simple(combined_id >> 32);
 
-    // È¡Ä£µ½ 0-999999
+    // ïŸ«è€€å–„ 0-999999
     return hash % 1000000;
 }
 /* USER CODE END 4 */
