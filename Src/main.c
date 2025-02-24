@@ -71,7 +71,7 @@ extern UPackage package;
 const char *cmd1 = "+++";
 const char *cmd2 = "AT+CFUN=1,1\r\n";
 const char *cmd3 = "ATO\r\n";
-uint32_t CpuID[3];							//苤傷耀宒
+uint32_t CpuID[3];							//小端模式
 uint32_t hashed_value = 0;
 uint32_t timeout_counter = 0;
 
@@ -124,28 +124,28 @@ int main(void)
   dev_state = DEV_WORK;
   RTC_Set_Alarm();
   init_package();
-		GetChipID();
-		hashed_value = hash_cpu_id(CpuID[0], CpuID[1], CpuID[2]);
-		hashed_value = hashed_value * 10;
+	GetChipID();
+	hashed_value = hash_cpu_id(CpuID[0], CpuID[1], CpuID[2]);
+	hashed_value = hashed_value * 10;
   while (1) {
     // RTC clk will use LSE (now LSI 40Khz is not accurate)
     rtc_ts = RTC_Get_Timestamp();
-    static int RTC_LED = 1;
+//    static int RTC_LED = 1;
 
     if (RTC_Alarm_flag == 1) {
 //      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, RTC_LED);
-	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, (RTC_LED) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-      RTC_LED = !RTC_LED;
-
+//	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, (RTC_LED) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+//      RTC_LED = !RTC_LED;
+//		rdy_send_time = uwTick;
       // Send data if connected to server
 //      if (IO_NB_NETMODE && IO_NB_LINK) {
-		 if (IO_NB_LINK) {
-        sample_adc(0);
-        send_package(battery, RTC_Get_Timestamp());
-        RTC_Set_Alarm();
-        RTC_Alarm_flag = 0;
-
-      } else {
+		if (IO_NB_LINK) {
+				sample_adc(0);
+				send_package(battery, RTC_Get_Timestamp());
+				HAL_Delay(5000);
+				RTC_Set_Alarm();
+				RTC_Alarm_flag = 0;}
+       else {
         // 1. Reset NBIOT_DTU If timeout (60s)
         if (uwTick - rdy_send_time >= 1000 * 60) {
 				HAL_GPIO_WritePin(GPIOA,GPIO_PIN_1,GPIO_PIN_RESET);
@@ -158,11 +158,6 @@ int main(void)
         }
       }
     }
-//    if (sample_flag == 1) {
-//      sample_adc(1);
-//      sample_flag = 0;
-//    }
-
     // Here feed watchdog (enbale it when everything is finished)
     // Feed();
 
@@ -176,6 +171,8 @@ int main(void)
        sys_out_stop_mode();
 		if(sample_flag == 1){
 			sample_adc(1);
+			HAL_UART_Transmit(&huart1,(uint8_t*)&thunder1,sizeof(thunder1),100);
+			HAL_UART_Transmit(&huart1,(uint8_t*)&battery,sizeof(battery),100);
 			}
 		}
 		sample_flag = 0;
@@ -272,6 +269,26 @@ void sys_enter_stop_mode(void) {
 	HAL_GPIO_WritePin(GPIOA,GPIO_PIN_1,GPIO_PIN_RESET);
 
   HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+	  // 1. 等待UART发送完成
+//  while (huart1.gState != HAL_UART_STATE_READY) {
+//    __NOP();
+//  }
+
+//  // 2. 关闭外设时钟（降低功耗）
+//  __HAL_RCC_ADC1_CLK_DISABLE();
+//  __HAL_RCC_USART1_CLK_DISABLE();
+
+//  // 3. 配置唤醒源
+//  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);
+//  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+//  HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+
+//  // 4. 关闭NB-IoT模块电源（确保发送完成后）
+//  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+
+//  // 5. 进入停机模式
+//  HAL_SuspendTick();
+//  HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
 }
 void sys_out_stop_mode(void) {
   SystemClock_Config();
@@ -279,12 +296,31 @@ void sys_out_stop_mode(void) {
   MX_ADC1_Init();
   MX_USART1_UART_Init();
   HAL_ResumeTick();
+	  // 1. 恢复时钟（确保HSE/PLL稳定）
+//  SystemClock_Config();
+
+//  // 2. 重新启用关键外设时钟
+//  __HAL_RCC_GPIOA_CLK_ENABLE();
+//  __HAL_RCC_USART1_CLK_ENABLE();
+
+//  // 3. 重新初始化GPIO（确保UART引脚复用）
+//  MX_GPIO_Init();
+
+//  // 4. 重新初始化UART（恢复波特率等配置）
+//  MX_USART1_UART_Init();
+
+//  // 5. 恢复NB-IoT模块电源
+//  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+//    HAL_Delay(1000); // 等待NB-IoT模块启动
+
+//  // 6. 恢复系统节拍定时器
+//  HAL_ResumeTick();
 }
 void GetChipID ( void )
 {
-    CpuID[0] = * ( uint32_t * ) ( 0x1ffff7e8 ); //詢32弇華硊
-    CpuID[1] = * ( uint32_t * ) ( 0x1ffff7ec ); //笢32弇華硊
-    CpuID[2] = * ( uint32_t * ) ( 0x1ffff7f0 ); //腴32弇華硊
+    CpuID[0] = * ( uint32_t * ) ( 0x1ffff7e8 ); //高32位地址
+    CpuID[1] = * ( uint32_t * ) ( 0x1ffff7ec ); //中32位地址
+    CpuID[2] = * ( uint32_t * ) ( 0x1ffff7f0 ); //低32位地址
 }
 uint32_t murmur3_32_simple(uint32_t k) {
     k ^= k >> 16;
@@ -301,7 +337,7 @@ uint32_t hash_cpu_id(uint32_t cpu_id0, uint32_t cpu_id1, uint32_t cpu_id2) {
     uint32_t hash = murmur3_32_simple(combined_id & 0xFFFFFFFF);
     hash ^= murmur3_32_simple(combined_id >> 32);
 
-    // 耀善 0-999999
+    // 取模到 0-999999
     return hash % 1000000;
 }
 /* USER CODE END 4 */
