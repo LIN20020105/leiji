@@ -33,8 +33,9 @@ void sample_adc(int push_to_pkg) {
     }
   }
   thunder1 = ADC_Buffer[1];
-  battery = (ADC_Buffer[0]*100)/4096;
-  
+    battery = (ADC_Buffer[0]*1.731*100)/4200;
+	if(battery > 100){
+	battery = 100;}
 
   if (push_to_pkg) {
     push_data(thunder1,RTC_Get_Timestamp());
